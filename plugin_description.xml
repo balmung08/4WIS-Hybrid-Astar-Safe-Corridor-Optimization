@@ -1,0 +1,14 @@
+<library path="status_panel">
+  <class
+    name="fourwis_hybrid_astar_cpp/StatusPanel"
+    type="fourwis_hybrid_astar_cpp::StatusPanel"
+    base_class_type="rviz_common::Panel">
+    <description>Side panel showing Ackermann planner state and trajectory metrics.</description>
+  </class>
+  <class
+    name="fourwis_hybrid_astar_cpp/PlannerParamPanel"
+    type="fourwis_hybrid_astar_cpp::PlannerParamPanel"
+    base_class_type="rviz_common::Panel">
+    <description>Side panel for live tuning Ackermann planner parameters.</description>
+  </class>
+</library>

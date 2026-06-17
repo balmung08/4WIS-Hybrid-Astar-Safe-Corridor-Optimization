@@ -1,0 +1,63 @@
+fourwis_demo_map_cpp:
+  ros__parameters:
+    map_scenario: legacy_maze
+    resolution: 0.1
+    frame_id: map
+
+fourwis_hybrid_astar_cpp:
+  ros__parameters:
+    xy_resolution: 0.2
+    yaw_resolution: 0.2617993877991494
+    heuristic_resolution: 0.2
+    max_iterations: 200000
+
+    goal_distance_tolerance: 0.25
+    goal_yaw_tolerance: 0.17453292519943295
+    analytic_expansion_distance: 5.0
+
+    obstacle_threshold: 50
+    unknown_is_obstacle: true
+
+    wheelbase: 0.68
+    robot_length: 1.0
+    robot_width: 0.62
+    collision_clearance: 0.005
+
+    reference_velocity: 1.0
+    max_steer_deg: 30.0
+
+    sampling_time: 0.4
+    integration_dt: 0.05
+
+    reverse_penalty: 2.0
+    steer_penalty: 1.0
+    steer_change_penalty: 1.0
+    direction_change_penalty: 1.0
+
+    backend_casadi_python: /home/balmung/miniconda3/bin/python3
+    backend_casadi_script: /home/balmung/Legacy/4WIS_Global/fourwis_hybrid_astar_cpp/scripts/casadi_backend.py
+    backend_max_iterations: 1
+    backend_ipopt_max_iterations: 1000
+    backend_ipopt_tol: 0.0001
+
+    backend_resample_distance: 0.1
+    backend_corridor_max_distance: 5.0
+    backend_corridor_fast_step: 0.25
+    backend_corridor_fine_step: 0.05
+    backend_corridor_axis_aligned: true
+
+    backend_comfort_weight: 0.02
+    backend_constraint_penalty: 1000.0
+    backend_infeasibility_tolerance: 0.0001
+    backend_max_velocity: 1.0
+    backend_max_acceleration: 5.0
+
+    pose_arrow_length: 0.9
+    pose_arrow_width: 0.16
+    pose_arrow_height: 0.16
+    pose_marker_z: 0.18
+    body_trajectory_visualization_enabled: true
+    body_trajectory_marker_z: 0.09
+    backend_corridor_visualization_enabled: true
+    backend_corridor_visualization_stride: 1
+    backend_corridor_marker_z: 0.06
