@@ -1,6 +1,135 @@
+# Parameter Reference
+
+This document explains the tunable parameters in [config/planner.yaml](../config/planner.yaml). The YAML file keeps only parameter values; units, meanings, and available options are documented here.
+
+## General Conventions
+
+- Length, position, and resolution parameters use meters.
+- Time parameters use seconds.
+- Parameters ending with `_deg` use degrees. Other angle parameters use radians.
+- The current planner is bidirectional Ackermann-only. The front end samples forward and reverse Ackermann motion primitives.
+- Front-end collision checking and back-end safe corridors use the same two-circle vehicle model. The circle radius is `hypot(robot_length / 4, robot_width / 2) + collision_clearance`, and the front/rear circle centers are offset by `robot_length / 4` from the vehicle center.
+
+## Demo Map
+
+| Parameter | Meaning | Options |
+| --- | --- | --- |
+| `map_scenario` | Built-in map scenario. It can be switched online from the RViz parameter panel. | `legacy_maze`, `legacy_maze_inflated_0_1`, `legacy_parking`, `reference_parking`, `tight_complex` |
+| `resolution` | Resolution of the published built-in `OccupancyGrid`. | Positive value |
+| `frame_id` | Frame id used by `/map` and visualization markers. | Usually `map` |
+
+## Input & Occupancy
+
+| Parameter | Meaning | Options |
+| --- | --- | --- |
+| `obstacle_threshold` | Occupancy values greater than or equal to this threshold are treated as obstacles. | `0` to `100` |
+| `unknown_is_obstacle` | Whether unknown cells with value `-1` are treated as obstacles. | `true` is conservative; `false` is more permissive |
+
+## Search Grid
+
+| Parameter | Meaning | Tuning Effect |
+| --- | --- | --- |
+| `xy_resolution` | x/y discretization resolution for the front-end closed-set hash. | Smaller values improve spatial detail but increase the number of nodes. |
+| `yaw_resolution` | yaw discretization resolution for the front-end closed-set hash. | Smaller values distinguish headings more finely but slow down search. |
+| `heuristic_resolution` | Grid resolution for the obstacle-aware 2D Dijkstra heuristic. | Smaller values make the heuristic finer but increase precomputation time. |
+| `max_iterations` | Maximum number of Hybrid A* search iterations. | Prevents unbounded search expansion. |
+
+## Goal & Analytic
+
+| Parameter | Meaning | Options or Effect |
+| --- | --- | --- |
+| `goal_distance_tolerance` | Allowed final position error. | Smaller values are stricter. |
+| `goal_yaw_tolerance` | Allowed final heading error. | Smaller values are stricter. |
+| `analytic_expansion_distance` | Try an OMPL Reeds-Shepp terminal analytic connection when the heuristic distance is below this value. | `0.0` mostly disables proactive terminal connection attempts. |
+
+## Vehicle Geometry
+
+| Parameter | Meaning |
+| --- | --- |
+| `wheelbase` | Equivalent Ackermann wheelbase. |
+| `robot_length` | Vehicle length, used for visualization, the two-circle collision model, and safe-corridor front/rear circle centers. |
+| `robot_width` | Vehicle width, used for visualization, the two-circle collision model, and safe-corridor radius. |
+| `collision_clearance` | Extra safety inflation radius applied consistently to front-end collision checking and back-end safe corridors. |
+
+## Vehicle Limits
+
+| Parameter | Meaning | Tuning Effect |
+| --- | --- | --- |
+| `reference_velocity` | Reference velocity used by front-end primitive rollout. | Affects primitive length. |
+| `max_steer_deg` | Maximum Ackermann steering angle. | Affects the minimum turning radius. |
+
+## Motion Sampling
+
+| Parameter | Meaning | Tuning Effect |
+| --- | --- | --- |
+| `sampling_time` | Duration of a single motion primitive. | Larger values produce longer primitive steps; smaller values make the search finer. |
+| `integration_dt` | Internal integration step for primitive rollout. | Smaller values improve collision-checking and integration detail. |
+
+## Front-End Costs
+
+| Parameter | Meaning |
+| --- | --- |
+| `reverse_penalty` | Cost multiplier for reverse driving distance. |
+| `steer_penalty` | Cost coefficient for absolute steering angle. |
+| `steer_change_penalty` | Cost coefficient for steering change between adjacent primitives. |
+| `direction_change_penalty` | Cost for switching between forward and reverse motion. |
+
+## Backend Solver
+
+| Parameter | Meaning | Options or Effect |
+| --- | --- | --- |
+| `backend_casadi_python` | Python interpreter with CasADi available. | For example, a conda or Isaac Sim Python environment. |
+| `backend_casadi_script` | Path to the CasADi back-end script. | Usually `scripts/casadi_backend.py` inside this package. |
+| `backend_max_iterations` | Maximum number of outer back-end iterations. Each iteration rebuilds safe corridors around the current trajectory and calls CasADi/IPOPT once. | Paper-level back-end iteration limit; `1` means one back-end optimization pass. |
+| `backend_ipopt_max_iterations` | Maximum number of internal IPOPT iterations for a single NLP solve. | Larger values may improve convergence but increase solve time. |
+| `backend_ipopt_tol` | IPOPT first-order optimality tolerance. | Smaller values are stricter. |
+
+The back end is fixed to Python CasADi + IPOPT. After the front-end search succeeds, the planner enters back-end optimization automatically. The old C++ IPOPT fallback and back-end enable switch are not retained.
+
+## Backend Corridor
+
+| Parameter | Meaning | Tuning Effect |
+| --- | --- | --- |
+| `backend_resample_distance` | Target spacing for arc-length-based trajectory resampling before optimization. | Smaller values increase NLP size and trajectory detail, but slow down the back end. |
+| `backend_corridor_max_distance` | Maximum expansion distance of each safe-corridor side. | Larger values provide wider feasible regions but increase corridor construction and visualization load. |
+| `backend_corridor_fast_step` | Fast polling expansion step for safe-corridor construction. | Quickly approaches nearby obstacles or map boundaries. |
+| `backend_corridor_fine_step` | Fine expansion step after fast expansion stops. | Smaller values make corridor boundaries more accurate. |
+| `backend_corridor_axis_aligned` | Safe-corridor coordinate frame. | `true`: world-axis-aligned; `false`: velocity/local-frame-aligned. |
+
+Safe corridors keep the fast/fine polling expansion mechanism and build constraints around the front and rear circle centers of the vehicle.
+
+## Backend Objective & Bounds
+
+| Parameter | Meaning |
+| --- | --- |
+| `backend_comfort_weight` | Comfort weight. The CasADi objective includes `T + alpha * sum((v * omega)^2) * dt`. |
+| `backend_constraint_penalty` | Soft-constraint penalty weight. |
+| `backend_infeasibility_tolerance` | Acceptable back-end infeasibility / outer-loop convergence tolerance. |
+| `backend_max_velocity` | Upper bound for the optimized velocity variable `v_k`. |
+| `backend_max_acceleration` | Upper bound for the optimized acceleration variable `a_k`. |
+
+## Visualization
+
+| Parameter | Meaning |
+| --- | --- |
+| `pose_arrow_length` | Length of the RViz start/goal arrows. |
+| `pose_arrow_width` | Width of the RViz start/goal arrows. |
+| `pose_arrow_height` | Height of the RViz start/goal arrows. |
+| `pose_marker_z` | z offset of the start/goal arrows. |
+| `body_trajectory_visualization_enabled` | Whether to display one moving vehicle body rectangle along the final trajectory. Only the final trajectory is played back. |
+| `body_trajectory_marker_z` | z offset of the moving body rectangle. |
+| `backend_corridor_visualization_enabled` | Whether to display back-end safe-corridor wireframes. |
+| `backend_corridor_visualization_stride` | Display one safe corridor every N resampled back-end states. |
+| `backend_corridor_marker_z` | z offset of the safe-corridor wireframes. |
+
+---
+
+<details>
+<summary>点击查看中文版</summary>
+
 # 参数说明
 
-本文档说明 `config/planner.yaml` 中的可调参数。YAML 文件只保留参数值，详细含义、单位和可选项统一放在这里。
+本文档说明 [config/planner.yaml](../config/planner.yaml) 中的可调参数。YAML 文件只保留参数值，详细含义、单位和可选项统一放在这里。
 
 ## 基本约定
 
@@ -121,3 +250,5 @@
 | `backend_corridor_visualization_enabled` | 是否显示后端安全走廊线框。 |
 | `backend_corridor_visualization_stride` | 每隔多少个后端重采样点显示一个安全走廊。 |
 | `backend_corridor_marker_z` | 安全走廊线框的 z 偏移。 |
+
+</details>
